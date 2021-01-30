@@ -1,0 +1,45 @@
+# model = RB750Gr3
+/interface bridge
+add name=bridge-vl5 protocol-mode=none
+add name=bridge-vl6 protocol-mode=none
+/interface ethernet
+set [ find default-name=ether1 ] name=ether1-mgmt
+set [ find default-name=ether2 ] loop-protect=off mtu=1596 name=ether2-ntu
+set [ find default-name=ether3 ] name=ether3-tv-local
+set [ find default-name=ether4 ] name=ether4-tv-local
+set [ find default-name=ether5 ] mtu=1596 name=ether5-fgt-wan
+/interface vlan
+add interface=ether2-ntu loop-protect=off name=vlan4-tv vlan-id=4
+add interface=ether2-ntu loop-protect=off mtu=1592 name=vlan6-internet vlan-id=6
+/interface list
+add comment=defconf name=WAN
+add comment=defconf name=LAN
+/ip dhcp-client option
+add code=60 name=option60 value="'IPTV_RG'"
+/interface bridge port
+add bridge=bridge-vl6 interface=vlan6-internet
+add bridge=bridge-vl6 interface=ether5-fgt-wan
+add bridge=bridge-vl5 interface=ether4-tv-local
+add bridge=bridge-vl5 interface=ether3-tv-local
+/ip neighbor discovery-settings
+set discover-interface-list=LAN
+/ip address
+# put your management IP address below
+add address=x.x.x.0/24 comment=beheer interface=ether1-mgmt network=x.x.x.0
+# put your internal IP adress for your internal tv vlan here
+add address=y.y.y.0/24 comment=tv-local interface=bridge-vl5 network=y.y.y.0
+/ip dhcp-client
+add add-default-route=special-classless default-route-distance=10 dhcp-options=hostname,clientid,option60 disabled=no interface=vlan4-tv \
+    use-peer-dns=no
+/ip firewall nat
+add action=masquerade chain=srcnat out-interface=vlan4-tv routing-mark=kpn routing-table=kpn src-address=y.y.y.0/24
+/ip route
+# pointing the default route to my fortigate which is .2
+add check-gateway=ping distance=1 gateway=y.y.y.2 routing-mark=kpn
+/ip route vrf
+add interfaces=vlan4-tv,bridge-vl5,vlan6-internet routing-mark=kpn
+/routing igmp-proxy
+set quick-leave=yes
+/routing igmp-proxy interface
+add alternative-subnets=0.0.0.0/0 interface=vlan4-tv upstream=yes
+add interface=bridge-vl5
