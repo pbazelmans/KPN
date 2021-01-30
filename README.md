@@ -1,2 +1,2 @@
 # KPN
-KPN Internet and iTV resources
+Here you can find some KPN Internet and iTV resources such as configurations.
